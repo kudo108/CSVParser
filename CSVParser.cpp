@@ -1,15 +1,30 @@
-//
-//  CSVParser.cpp
-//  
-//
-//  Created by Quan Nguyen on 10/10/14.
-//
-//
+/****************************************************************************
+ Copyright (c) 2015 QuanNguyen
+ 
+ http://quannguyen.info
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+ ****************************************************************************/
 
 #include "CSVParser.h"
 #include "cocos2d.h"
 
-using namespace std;
 USING_NS_CC;
 
 CSVParser::~CSVParser(void)
@@ -17,12 +32,12 @@ CSVParser::~CSVParser(void)
     
 }
 
-void CSVParser::splitString( const string& str, vector<string>& tokens, const char& delimiters )
+void CSVParser::splitString( const std::string& str, std::vector<std::string>& tokens, const char& delimiters )
 {
-    string::size_type lastPos = str.find_first_not_of(delimiters, 0);
-    string::size_type pos = str.find_first_of(delimiters, lastPos);
-    while (string::npos != pos || string::npos != lastPos)
-    {
+    std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
+    std::string::size_type pos = str.find_first_of(delimiters, lastPos);
+    
+    while (std::string::npos != pos || std::string::npos != lastPos){
         tokens.push_back(str.substr(lastPos, pos-lastPos));
         lastPos = str.find_first_not_of(delimiters, pos);
         pos = str.find_first_of(delimiters, lastPos);
@@ -30,88 +45,92 @@ void CSVParser::splitString( const string& str, vector<string>& tokens, const ch
 }
 
 
-void CSVParser::split( vector<string>& field, string line )
+void CSVParser::split( std::vector<std::string>& field, std::string line )
 {
-    string fld;
-    unsigned int i,j=0;
+    std::string fld;
+    unsigned int i,j = 0;
     
-    if( line.length() ==0 )
+    if( line.length() ==0 ){
         return;
-    i=0;
+    }
     
-    do
-    {
-        if(j<line.length() && line[i]=='"')
+    i = 0;
+    
+    do{
+        if(j<line.length() && line[i]=='"'){
             j = advquoted(line, fld, ++i);
-        else
+        }
+        else{
             j = advplain(line, fld, i);
+        }
         
         field.push_back(fld);
         i = j+1;
+        
     } while (j<line.length());
 }
 
 
 
-int CSVParser::advplain( const string& s, string& fld, int i)
+int CSVParser::advplain( const std::string& s, std::string& fld, int i)
 {
     unsigned int j;
     j = s.find_first_of(fieldsep, i);
-    if(j>s.length())
+    
+    if(j>s.length()){
         j=s.length();
-    fld = string(s,i,j-i);
+    }
+    
+    fld = std::string(s,i,j-i);
+    
     return j;
 }
 
-int CSVParser::advquoted( const string& s, string& fld, int i)
+int CSVParser::advquoted( const std::string& s, std::string& fld, int i)
 {
     unsigned int j;
     fld = "";
-    for (j=i; j<s.length(); ++j)
-    {
-        if(s[j]=='"' && s[++j]!='"')
-        {
+    
+    for (j=i; j<s.length(); ++j){
+        
+        if(s[j]=='"' && s[++j]!='"'){
             unsigned int k = s.find_first_of(fieldsep, j);
-            if(k>s.length())
+            if(k>s.length()){
                 k = s.length();
-            for(k-=j; k-->0;)
+            }
+            for(k-=j; k-->0;){
                 fld += s[j++];
+            }
             break;
         }
+        
         fld += s[j];
     }
+    
     return j;
 }
 
 bool CSVParser::openFile( const char* fileName )
 {
-    string pathKey = FileUtils::getInstance()->fullPathForFilename(fileName);
-    unsigned char* pBuffer = NULL;
-    ssize_t bufferSize = 0;
-    pBuffer = FileUtils::getInstance()->getFileData(pathKey.c_str(), "r", &bufferSize);
+    auto fileData = FileUtils::getInstance()->getDataFromFile(fileName);
+    std::string str = std::string((const char *)fileData.getBytes());
     
-    string s = (char*)pBuffer;
-    string str = s.substr(0,bufferSize);
-    
-    vector<string> line;
+    std::vector<std::string> line;
     splitString(str, line, '\r');
-    for(unsigned int i=0; i<line.size(); ++i)
-    {
-        vector<string> field;
+    
+    for(unsigned int i=0; i<line.size(); ++i){
+        std::vector<std::string> field;
         split(field, line[i]);
         data.push_back(field);
-        cols = max(cols, (int)field.size());
+        cols = std::max(cols, (int)field.size());
     }
-    
-    CC_SAFE_DELETE_ARRAY(pBuffer);
     
     return true;
 }
 
 const char* CSVParser::getData(unsigned int rows, unsigned int cols )
 {
-    if (rows >= data.size() || cols >= data[rows].size())
-    {
+    if (rows >= data.size() || cols >= data[rows].size()){
         return "";
     }
     
@@ -120,10 +139,11 @@ const char* CSVParser::getData(unsigned int rows, unsigned int cols )
 
 int CSVParser::findColsData( int cols, const char* value )
 {
-    for (unsigned int i = 0; i < data.size(); ++i)
-    {
-        if(strcmp(getData(i,cols),value)==0)
+    for (unsigned int i = 0; i < data.size(); ++i){
+        if(strcmp(getData(i,cols),value)==0){
             return i;
+        }
     }
+    
     return -1;
 }
